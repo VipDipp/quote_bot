@@ -12,7 +12,7 @@ module.exports = {
         reply_markup: JSON.stringify({
             inline_keyboard: [
                 [{ text: 'Цены', callback_data: 'price' }],
-                [{ text: 'Уведомление', callback_data: 'alert' }]
+                // [{ text: 'Уведомление', callback_data: 'alert' }]
             ]
         })
     },
@@ -20,8 +20,8 @@ module.exports = {
         method: 'GET',
         uri: 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest',
         qs: {
-            'start': '2',
-            'limit': '1',
+            'start': '1',
+            'limit': '10',
             'convert': 'USD'
         },
         headers: {

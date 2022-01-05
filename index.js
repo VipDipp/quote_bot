@@ -7,39 +7,56 @@ const User = require('./model');
 require('dotenv').config();
 requestOptions.headers['X-CMC_PRO_API_KEY'] = process.env.CMC_API;
 
-let path;
-let api_response;
+let api_response = setInterval(apiRequest, 600000);
 const token = process.env.TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
 bot.on('message', async msg => {
     const text = msg.text;
     const chatId = msg.chat.id;
+    const user = await User.findOne({ chatID: chatId });
 
     try {
         if (text === '/start') {
             const user = new User({ chatID: chatId });
             await user.save();
-            return bot.sendMessage(chatId, `Приветствую, нажмите /info для большей информации`, choiceOptions);
+            return bot.sendMessage(chatId, `Приветствую, нажмите /info для большей информации`);
         }
+
         if (text === '/info') {
             return bot.sendMessage(chatId, 'Здесь вы можете проверить котировки интересующего вас инструмента или поставить уведомление на достижении определенной цели', pathOptions);
         }
+
+        if (user.path === 'price') {
+            const user = await User.findOne({ chatID: chatId });
+            try {
+                await apiRequest();
+                const currencyId = Object.keys(api_response.data).find(txt => api_response.data[txt].symbol == text);
+                user.path = 'main';
+                await user.save();
+                await bot.sendMessage(chatId, `${api_response.data[currencyId].quote.USD.price}`);
+            } catch (e) {
+                console.log(e);
+                return bot.sendMessage(chatId, 'Напиши правильный инструмент');
+            }
+            return bot.sendMessage(chatId, 'Меню:', pathOptions);
+        }
+
         return bot.sendMessage(chatId, 'Не понял');
     } catch (e) {
-        return bot.sendMessage(chatId, 'Произошла какая то ошибочка!)');
+        console.log(e);
+        return bot.sendMessage(chatId, 'Произошла ошибка');
     }
 
 });
 
 async function apiRequest() {
     api_response = await rp(requestOptions).then(response => {
-        console.log('API call response:', response);
+        //console.log('API call response:', response);
         return response;
     }).catch((err) => {
         console.log('API call error:', err.message);
     });
-    console.log(api_response);
     return;
 }
 
@@ -51,22 +68,16 @@ function getPrice(res, arg) {
     }
 }
 
-function botOnAlert() {
-
-}
-
-function botOnPrice() {
-
-}
-
 bot.on('callback_query', async msg => {
     const data = msg.data;
     const chatId = msg.message.chat.id;
-    console.log(data);
 
     if (data === 'price') {
-        path = 'price';
-        botOnPrice();
+        const user = await User.findOne({ chatID: chatId });
+        user.path = 'price';
+        await user.save();
+        bot.sendMessage(chatId, 'Напишите какой инструмент вас интересует:');
+
     }
 
     if (data === 'alert') {
@@ -74,13 +85,14 @@ bot.on('callback_query', async msg => {
         botOnAlert();
     }
 
-    apiRequest()
+    /*apiRequest()
         .then(() => {
             const text = getPrice(api_response, data);
             return bot.sendMessage(chatId, `${text}`);
         }).catch((e) => {
             console.log(e);
-        })
+        })*/
+
 })
 
 start();
