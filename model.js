@@ -1,6 +1,6 @@
 const { Schema, model } = require('mongoose');
 
-const User = new Schema({
+const UserSchema = new Schema({
     chatID: {
         type: Number,
         required: true,
@@ -9,26 +9,31 @@ const User = new Schema({
     path: {
         type: String,
         default: 'main'
-    },
-    alerts: {
-        type: Number,
-        default: 0
     }
 })
 
-const Alerts = new Schema({
+const AlertsSchema = new Schema({
     chatID: {
         type: Number,
         required: true,
         unique: true
     },
     alert: {
-        type: Array
+        type: Array,
+        default: []
+    },
+    value: {
+        type: Array,
+        default: []
     }
 
 })
 
+const User = model('User', UserSchema);
+const Alerts = model('Alerts', AlertsSchema);
 
 
-
-module.exports = model('User', User);
+module.exports = {
+    User,
+    Alerts
+}

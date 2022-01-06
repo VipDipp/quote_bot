@@ -12,7 +12,7 @@ module.exports = {
         reply_markup: JSON.stringify({
             inline_keyboard: [
                 [{ text: 'Цены', callback_data: 'price' }],
-                // [{ text: 'Уведомление', callback_data: 'alert' }]
+                [{ text: 'Уведомление', callback_data: 'alert' }]
             ]
         })
     },
