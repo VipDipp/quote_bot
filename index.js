@@ -119,27 +119,43 @@ function getPrice(res, arg) {
 }
 
 async function alertCheck() {
-    (await Alerts.find({})).forEach(async(model) => {
+    console.log('here');
+    try {
+        (await Alerts.find({})).forEach(async(model) => {
 
-        const chatid = model.chatId;
-        const alert = model.alert;
-        const value = model.value;
-        const higher = model.higher;
-        const length = chatid.length - 1;
+            const chatid = model.chatID;
+            const alert = model.alert;
+            const value = model.value;
+            const higher = model.higher;
+            let length = alert.length;
 
-        for (let i = 0; i < length; i++) {
-            const price = getPrice(api_response, await getCurrencyID(value[i]))
-            if ((price > alert[i] && higher) || (price < alert[i] && !higher)) {
-                bot.sendMessage(chatId, `Актив ${value[i]} достиг цены в ${alert[i]}!`);
-                await alert.splice(i, 1).save();
-                await value.splice(i, 1).save();
-                await higher.splice(i, 1).save();
-                i--;
-                length--;
+            console.log(chatid);
+            console.log(alert);
+            console.log(value);
+            console.log(higher);
+            console.log(length);
+
+            for (let i = 0; i < length; i++) {
+                const price = getPrice(api_response, await getCurrencyID(model.value[i]));
+                console.log(price);
+                console.log(model.alert[i]);
+                if ((price > model.alert[i] && model.higher[i]) || (price < model.alert[i] && !model.higher[i])) {
+                    bot.sendMessage(chatid, `Актив ${model.value[i]} достиг цены в ${model.alert[i]}!`);
+                    await model.alert.splice(i, 1);
+                    await model.save();
+                    await model.value.splice(i, 1);
+                    await model.save();
+                    await model.higher.splice(i, 1);
+                    await model.save();
+                    i--;
+                    length--;
+                }
             }
-        }
 
-    })
+        })
+    } catch (e) {
+        console.log(e);
+    }
 }
 
 async function getCurrencyID(text) {
@@ -168,6 +184,7 @@ bot.on('callback_query', async msg => {
 
 })
 
-setInterval(alertCheck, 600000)
-
 start();
+
+alertCheck();
+setInterval(alertCheck, 600000)
