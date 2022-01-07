@@ -25,8 +25,11 @@ const AlertsSchema = new Schema({
     value: {
         type: Array,
         default: []
+    },
+    higher: {
+        type: Array,
+        default: []
     }
-
 })
 
 const User = model('User', UserSchema);

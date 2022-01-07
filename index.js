@@ -13,6 +13,12 @@ api_response = setInterval(apiRequest, 600000);
 const token = process.env.TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
+/*async function b() {
+    console.log((await Alerts.find({}))[0].chatID);
+}
+b();*/
+
+
 bot.on('message', async msg => {
     const text = msg.text;
     const chatId = msg.chat.id;
@@ -52,9 +58,10 @@ bot.on('message', async msg => {
             try {
                 getCurrencyID(text);
                 console.log(alerts.value);
-                const arr = alerts.value.push(text);
-                alerts.value = arr;
-                await alerts.save();
+                const arr = await Alerts.findOne({ chatID: chatId });
+
+                arr.value.push(text);
+                await arr.save();
 
                 user.path = 'alert2';
                 await user.save();
@@ -72,9 +79,17 @@ bot.on('message', async msg => {
             }
             user.path = 'main';
             await user.save();
-            const arr = alerts.alert.push(text);
-            alerts.alert = arr;
-            await alerts.save();
+
+            const arr = await Alerts.findOne({ chatID: chatId });
+
+            if (getPrice(api_response, await getCurrencyID(arr.value[arr.value.length - 1])) < text) {
+                arr.higher.push(true);
+            } else {
+                arr.higher.push(false);
+            }
+
+            arr.alert.push(text);
+            await arr.save();
             return bot.sendMessage(chatId, `Готово! Вы получите уведомление когда цена достигнет нужной цены`);
         }
 
@@ -103,6 +118,30 @@ function getPrice(res, arg) {
     }
 }
 
+async function alertCheck() {
+    (await Alerts.find({})).forEach(async(model) => {
+
+        const chatid = model.chatId;
+        const alert = model.alert;
+        const value = model.value;
+        const higher = model.higher;
+        const length = chatid.length - 1;
+
+        for (let i = 0; i < length; i++) {
+            const price = getPrice(api_response, await getCurrencyID(value[i]))
+            if ((price > alert[i] && higher) || (price < alert[i] && !higher)) {
+                bot.sendMessage(chatId, `Актив ${value[i]} достиг цены в ${alert[i]}!`);
+                await alert.splice(i, 1).save();
+                await value.splice(i, 1).save();
+                await higher.splice(i, 1).save();
+                i--;
+                length--;
+            }
+        }
+
+    })
+}
+
 async function getCurrencyID(text) {
     return currencyId = Object.keys(api_response.data).find(txt => api_response.data[txt].symbol == text);
 }
@@ -128,5 +167,7 @@ bot.on('callback_query', async msg => {
     }
 
 })
+
+setInterval(alertCheck, 600000)
 
 start();
