@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
-
-const url = process.env.MONGO;
+const url = require('../../config').mongoApi;
 
 const start = async() => {
     try {
