@@ -9,16 +9,24 @@ const bot = new TelegramBot(token, { polling: true });
 
 const alertCheck = require('./botModule').alertCheck;
 
-const request = async() => {
-    const api_response = await apiRequest();
+const botStart = async() => {
+
+    let api_response;
+    await start();
+
+    const request = async() => {
+
+        api_response = await apiRequest();
+        await alertCheck(api_response, bot);
+
+    }
 
     bot.on('message', async msg => await onMessage(msg, api_response, bot));
     bot.on('callback_query', async msg => await onQuery(msg, bot));
 
-    alertCheck(api_response);
+    await request();
+    setInterval(request, 600000);
 
 }
 
-setInterval(request, 600000);
-request();
-start();
+botStart();

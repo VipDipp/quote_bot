@@ -1,5 +1,16 @@
 const Alerts = require('../database/model').Alerts;
-const bot = require('./bot');
+
+async function myAlerts(chatId) {
+    const alert = await Alerts.findOne({ chatID: chatId });
+    const length = alert.alert.length;
+    const alerts = alert.alert;
+    const value = alert.value;
+    const array = [];
+    for (let i = 0; i < length; i++) {
+        array.push(`${i+1} - ${value[i]}: ${alerts[i]}`);
+    }
+    return array.join('\n');
+}
 
 async function getPrice(res, arg) {
     try {
@@ -9,8 +20,7 @@ async function getPrice(res, arg) {
     }
 }
 
-async function alertCheck(api_response) {
-    console.log('here');
+async function alertCheck(api_response, bot) {
     try {
         (await Alerts.find({})).forEach(async(model) => {
 
@@ -19,15 +29,14 @@ async function alertCheck(api_response) {
             let length = alert.length;
 
             for (let i = 0; i < length; i++) {
-                const price = await getPrice(api_response, await getCurrencyID(model.value[i], api_response));
-                console.log(price);
-                console.log(model.alert[i]);
+
+                const currencyID = await getCurrencyID(await model.value[i], api_response);
+                const price = await getPrice(api_response, currencyID);
                 if ((price > model.alert[i] && model.higher[i]) || (price < model.alert[i] && !model.higher[i])) {
+
                     bot.sendMessage(chatid, `Актив ${model.value[i]} достиг цены в ${model.alert[i]}!`);
                     await model.alert.splice(i, 1);
-                    await model.save();
                     await model.value.splice(i, 1);
-                    await model.save();
                     await model.higher.splice(i, 1);
                     await model.save();
                     i--;
@@ -42,10 +51,16 @@ async function alertCheck(api_response) {
 }
 
 async function getCurrencyID(text, api_response) {
-    return currencyId = Object.keys(api_response.data).find(txt => api_response.data[txt].symbol == text);
+    try {
+        const arr = api_response.data;
+        return currencyId = Object.keys(arr).find(txt => arr[txt].symbol == text);
+    } catch (e) {
+        console.log(e);
+    }
 }
 
 module.exports = {
+    myAlerts,
     getPrice,
     alertCheck,
     getCurrencyID

@@ -1,19 +1,15 @@
 const { User, Alerts } = require('../database/model');
-const { getPrice, alertCheck, getCurrencyID } = require('./botModule');
+const { getPrice, getCurrencyID } = require('./botModule');
 
-const pathOptions = require('../options').pathOptions;
+const { pathOptions, backOptions } = require('../options');
 
 async function onMessage(msg, api_response, bot) {
-
-    console.log(1);
 
     const text = msg.text;
     const chatId = msg.chat.id;
 
     const user = await User.findOne({ chatID: chatId });
     const alerts = await Alerts.findOne({ chatID: chatId });
-
-    console.log(text);
 
     try {
         if (text === '/start') {
@@ -22,6 +18,7 @@ async function onMessage(msg, api_response, bot) {
 
             await user.save();
             await alerts.save();
+
             return bot.sendMessage(chatId, `Приветствую, нажмите /info для большей информации`);
         }
 
@@ -31,9 +28,9 @@ async function onMessage(msg, api_response, bot) {
 
         if (user.path === 'price') {
             try {
-                console.log(api_response);
                 const currencyId = await getCurrencyID(text, api_response);
                 user.path = 'main';
+
                 await user.save();
                 await bot.sendMessage(chatId, `${await getPrice(api_response, currencyId)}`);
             } catch (e) {
@@ -56,23 +53,28 @@ async function onMessage(msg, api_response, bot) {
                 user.path = 'alert2';
                 await user.save();
 
-                return bot.sendMessage(chatId, `На каком уровне: (Цена ${text}: ${await getPrice(api_response, await getCurrencyID(text))})`);
+                const currencyID = await getCurrencyID(text, api_response);
+                const price = await getPrice(api_response, currencyID);
+
+                return bot.sendMessage(chatId, `На каком уровне: (Цена ${text}: ${price})`);
             } catch (e) {
                 console.log(e);
-                return bot.sendMessage(chatId, 'Введите правильный инструмент');
+                return bot.sendMessage(chatId, 'Введите правильный инструмент', backOptions);
             }
         }
 
         if (user.path === 'alert2') {
-            if (isNaN(text)) {
-                return bot.sendMessage(chatId, 'Введите число');
-            }
+            if (isNaN(text)) return bot.sendMessage(chatId, 'Введите число');
+
             user.path = 'main';
             await user.save();
 
             const arr = await Alerts.findOne({ chatID: chatId });
+            const value = arr.value[arr.value.length - 1];
+            const currencyID = await getCurrencyID(value, api_response);
+            const price = await getPrice(api_response, currencyID);
 
-            if (await getPrice(api_response, await getCurrencyID(arr.value[arr.value.length - 1], api_response)) < text) {
+            if (price < text) {
                 arr.higher.push(true);
             } else {
                 arr.higher.push(false);
@@ -80,7 +82,7 @@ async function onMessage(msg, api_response, bot) {
 
             arr.alert.push(text);
             await arr.save();
-            return bot.sendMessage(chatId, `Готово! Вы получите уведомление когда цена достигнет нужной цены`);
+            return bot.sendMessage(chatId, `Готово! Вы получите уведомление когда цена достигнет нужного уровня`);
         }
 
         return bot.sendMessage(chatId, 'Не понял');

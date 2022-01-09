@@ -4,7 +4,17 @@ pathOptions = {
     reply_markup: JSON.stringify({
         inline_keyboard: [
             [{ text: 'Цены', callback_data: 'price' }],
-            [{ text: 'Уведомление', callback_data: 'alert' }]
+            [{ text: 'Уведомление', callback_data: 'alert' }],
+            [{ text: 'Мои уведомления', callback_data: 'myAlerts' }]
+
+        ]
+    })
+}
+
+backOptions = {
+    reply_markup: JSON.stringify({
+        inline_keyboard: [
+            [{ text: 'Назад', callback_data: 'back' }]
         ]
     })
 }
